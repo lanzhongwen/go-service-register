@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
@@ -63,7 +64,7 @@ func (n *Node) Register() error {
 	n.etcdClient, err = clientv3.New(
 		clientv3.Config{
 			Endpoints:   n.etcdAddrs,
-			DialTimeout: time.Duration(n.dialTimeout) * time.Second,
+			DialTimeout: time.Duration(rand.Intn(3000)+n.dialTimeout*1000) * time.Millisecond,
 		},
 	)
 
@@ -88,7 +89,8 @@ func (n *Node) Register() error {
 }
 
 func (n *Node) register() error {
-	resp, err := n.etcdClient.Grant(context.Background(), n.ttl)
+	actualTtl := int64(rand.Intn(10)) + n.ttl
+	resp, err := n.etcdClient.Grant(context.Background(), actualTtl)
 	if err != nil {
 		log.Println("[register/register] Grant failed: " + err.Error())
 		return err
@@ -113,7 +115,7 @@ func (n *Node) register() error {
 
 	_ = <-keepCh
 
-	log.Println("Register service: ", n.serviceName, " | value: ", n.serviceValue, " | ttl: ", n.ttl)
+	log.Println("Register service: ", n.serviceName, " | value: ", n.serviceValue, " | ttl: ", n.ttl, " | actual ttl: ", actualTtl)
 
 	return nil
 }
